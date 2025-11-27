@@ -55,15 +55,3 @@ def scrape_media_data(url):
     data["page_url"] = url
 
     return data
-
-
-if __name__ == "__main__":
-    # Test with The Matrix
-    test_link = "https://www.imdb.com/title/tt0133093/"
-    result = scrape_media_data(test_link)
-
-    print("\n--- SCRAPED RESULTS ---")
-    print(f"Title:  {result['title']}")
-    print(f"Year:   {result['year']}")
-    print(f"Rating: {result['rating']}")
-    print(f"Poster: {result['poster_url']}")
