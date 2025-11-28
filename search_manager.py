@@ -20,18 +20,29 @@ def find_link(movie_name):
         try:
 
             # navigate to the search page
-            page.goto(f"https://www.imdb.com/find/?q={search_query}")
+            page.goto(
+                f"https://www.imdb.com/find/?q={search_query}", wait_until="domcontentloaded", timeout=30000)
+            selector = "ul.ipc-metadata-list li:first-child a"
+            page.wait_for_selector(selector, timeout=20000)
 
-            page.wait_for_selector(
-                "ul.ipc-metadata-list li.find-result-item", timeout=10000)
-            first_result = page.locator(
-                "ul.ipc-metadata-list li.find-result-item a").first
-            link_extension = first_result.get_attribute("href")
-            clean_link = link_extension.split('?')[0]
+            first_result = page.locator(selector).first
+            href = first_result.get_attribute("href")
+            if not href:
+                print("no results.")
+                return None
+
+            clean_link = href.split("?")[0]
             link = "https://www.imdb.com" + clean_link
-            print(f"The link is found:{link}")
+            print(f"The link is found: {link}")
             return link
 
         except Exception as exception:
             print(f"{movie_name} not found.Error: {exception}")
+
+            try:
+                print(f"Sayfa Başlığı: {page.title()}")
+            except:
+                pass
             return None
+        finally:
+            browser.close()

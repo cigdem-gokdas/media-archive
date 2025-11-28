@@ -11,12 +11,18 @@ def scrape_media_data(url):
     with sync_playwright() as pw:
 
         browser = pw.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+        page = context.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-        page.goto(url, wait_until="networkidle")
-        page.wait_for_load_state("domcontentloaded")
+            html_content = page.content()
 
-        html_content = page.content()
+        except Exception as exception:
+            print(f"Error: {exception}")
+            browser.close()
+            return None
 
         browser.close()
     # For finding specific data.
@@ -38,13 +44,15 @@ def scrape_media_data(url):
         data["year"] = "0000"
     # Find rating N/A of movie
     try:
-        rating_element = soup.select_one("span.sc-bde20123-1.iZlgcd")
-        if not rating_element:
-            rating_element = soup.find(
-                "span", {"data-testid": "hero-rating-bar__aggregate-rating__score"})
-        data["rating"] = rating_element.text.strip() if rating_element else "N/A"
+        rating_element = soup.find(
+            "div", {"data-testid": "hero-rating-bar__aggregate-rating__score"})
+        if rating_element:
+            data["rating"] = rating_element.find("span").text.strip()
+        else:
+            data["rating"] = "N/A"
     except:
         data["rating"] = "N/A"
+
     # Find poster of movie
     try:
         poster_div = soup.find("div", class_="ipc-poster")
