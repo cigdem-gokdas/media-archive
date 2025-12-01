@@ -54,11 +54,11 @@ def scrape_media_data(url):
         data["rating"] = "N/A"
 
     # Find poster of movie
-   # try:
-    #    poster_div = soup.find("div", class_="ipc-poster")
-    #   data["poster_url"] = poster_div.find("img")["src"]
-   # except:
-    #    data["poster_url"] = None
+    try:
+        poster_div = soup.find("div", class_="ipc-poster")
+        data["poster_url"] = poster_div.find("img")["src"]
+    except:
+        data["poster_url"] = None
 
     data["page_url"] = url
 
