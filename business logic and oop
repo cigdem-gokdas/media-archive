@@ -1,133 +1,146 @@
-import sqlite3
+from pymongo import MongoClient
 
 class MediaItem:
     def get_info(self):
-        raise NotImplementedError("Subclasses must implement this method")
+        raise NotImplementedError("Subclass should override this")
 
 class Movie(MediaItem):
-    def __init__(self, title, year, rating, poster, link):
+    def __init__(self, title, year, rating, poster, link, status):
         self.title = title
         self.year = year
         self.rating = rating
         self.poster = poster
         self.link = link
+        self.status = status
 
     def update_rating(self, new_rating=None, imdb_score=None):
-        if new_rating is not None:
+        if new_rating:
             self.rating = new_rating
-        elif imdb_score is not None:
+        elif imdb_score:
             self.rating = str(imdb_score)
 
     def get_info(self):
-        return f"{self.title} ({self.year}) - Rating: {self.rating}"
+        return f"{self.title} ({self.year}) - Rating: {self.rating} - Status: {self.status}"
 
 class Database:
     def __init__(self):
-        self.db_name = "mymovies.db"
+        client = MongoClient("mongodb://localhost:27017/")
+        self.db = client["movie_db"]
+        self.movies = self.db["movies"]
 
     def setup(self):
-        try:
-            conn = sqlite3.connect(self.db_name)
-            cur = conn.cursor()
-            query = "Create Table If Not Exists movies (title Text, year Text, rating Text, poster Text, link Text)"
-            cur.execute(query)
-            conn.commit()
-            conn.close()
-        except Exception as error:
-            print("Database setup error:", error)
+        pass
 
     def add_movie(self, movie):
-        try:
-            conn = sqlite3.connect(self.db_name)
-            cur = conn.cursor()
-            cur.execute("SELECT * from movies where title = ?", (movie.title,))
-            row = cur.fetchone()
-            if row:
-                print("Movie already exists in the database.")
-            else:
-                cur.execute("Insert into movies values (?, ?, ?, ?, ?)", 
-                            (movie.title, movie.year, movie.rating, movie.poster, movie.link))
-                conn.commit()
-                print("Movie saved successfully.")
-            conn.close()
-        except sqlite3.Error as error:
-            print("Database error:", error)
+        same_movie = self.movies.find_one({"title": movie.title})
+        if same_movie:
+            print("This movie already exists.")
+            return
+        
+        movie_data = {
+            "title": movie.title,
+            "year": movie.year,
+            "rating": movie.rating,
+            "poster": movie.poster,
+            "link": movie.link,
+            "status": movie.status
+        }
+
+        self.movies.insert_one(movie_data)
+        print("Movie saved.")
 
     def list_movies(self):
-        conn = sqlite3.connect(self.db_name)
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM movies")
-        rows = cur.fetchall()
-        conn.close()
-        return rows
+        return list(self.movies.find({}, {"_id": 0}))
+
+    def list_watched(self):
+        return list(self.movies.find({"status": "watched"}, {"_id": 0}))
+
+    def list_to_watch(self):
+        return list(self.movies.find({"status": "not watched"}, {"_id": 0}))
 
     def delete_movie(self, title):
-        conn = sqlite3.connect(self.db_name)
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM movies WHERE title = ?", (title,))
-        row = cur.fetchone()
-        if row:
-            cur.execute("DELETE FROM movies WHERE title = ?", (title,))
-            conn.commit()
+        result = self.movies.delete_one({"title": title})
+        if result.deleted_count > 0:
             print("Movie deleted.")
         else:
             print("Movie not found.")
-        conn.close()
 
 class PosterDownloader:
     def download(self, url, title):
-        try:
-            if url and len(url) > 0:
-                print(f"Downloading poster for '{title}'... Done.")
-            else:
-                print("No URL provided, download skipped.")
-        except Exception:
-            print("Error downloading poster.")
+        if url:
+            print(f"Downloading poster for {title}... (simulation)")
+        else:
+            print("No URL entered.")
 
 if __name__ == "__main__":
     db = Database()
     db.setup()
     downloader = PosterDownloader()
-    print("Movie Database System")
+
+    print("Movie Database System (MongoDB Version)")
 
     try:
         while True:
-            print("\n1- Add Movie")
-            print("2- List Movies")
-            print("3- Exit")
-            print("4- Delete Movie")
+            print("\na- Add Movie")
+            print("b- List All Movies")
+            print("c- Exit")
+            print("d- Delete Movie")
+            print("e- Watched Movies")
+            print("f- Movies To Watch")
+
             choice = input("Select: ")
 
-            if choice == "1":
+            if choice == "a":
                 title = input("Movie Title: ")
                 year = input("Year: ")
                 rating = input("Rating: ")
-                poster_url = input("Poster URL: ")
-                web_page = input("Web Page: ")
-                my_movie = Movie(title, year, rating, poster_url, web_page)
-                downloader.download(poster_url, my_movie.title)
-                db.add_movie(my_movie)
-                print("Process finished.")
+                poster = input("Poster URL: ")
+                page = input("Web Page: ")
+                watched = input("Did you watch it? (y/n): ").lower()
 
-            elif choice == "2":
-                movies = db.list_movies()
-                if len(movies) == 0:
-                    print("No movies found.")
+                if watched == "y":
+                    status = "watched"
                 else:
-                    for m in movies:
+                    status = "not watched"
+
+                m = Movie(title, year, rating, poster, page, status)
+                downloader.download(poster, title)
+                db.add_movie(m)
+                print("Done.")
+
+            elif choice == "b":
+                all_movies = db.list_movies()
+                if not all_movies:
+                    print("No movies yet.")
+                else:
+                    for m in all_movies:
                         print(m)
 
-            elif choice == "3":
+            elif choice == "e":
+                w_list = db.list_watched()
+                if not w_list:
+                    print("No watched movies.")
+                else:
+                    for m in w_list:
+                        print(m)
+
+            elif choice == "f":
+                n_list = db.list_to_watch()
+                if not n_list:
+                    print("No movies waiting to be watched.")
+                else:
+                    for m in n_list:
+                        print(m)
+
+            elif choice == "d":
+                name = input("Enter movie title to delete: ")
+                db.delete_movie(name)
+
+            elif choice == "c":
                 break
 
-            elif choice == "4":
-                del_title = input("Enter movie title to delete: ")
-                db.delete_movie(del_title)
-
             else:
-                print("Invalid input.")
+                print("Invalid choice.")
 
-    except ValueError:
-        print("Input error: Please check your values.")
-    except Exception as error:
-        print("An unexpected error occurred:", error)
+    except Exception as e:
+        print("An error happened:", e)
