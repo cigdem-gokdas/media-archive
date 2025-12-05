@@ -29,7 +29,7 @@ class Database:
         try:
             conn = sqlite3.connect(self.db_name)
             cur = conn.cursor()
-            query = "Create Table If Not Exits movies (title Text, year Text, rating Text, poster Text, link Text)"
+            query = "Create Table If Not Exists movies (title Text, year Text, rating Text, poster Text, link Text)"
             cur.execute(query)
             conn.commit()
             conn.close()
@@ -40,10 +40,8 @@ class Database:
         try:
             conn = sqlite3.connect(self.db_name)
             cur = conn.cursor()
-
             cur.execute("SELECT * from movies where title = ?", (movie.title,))
             row = cur.fetchone()
-
             if row:
                 print("Movie already exists in the database.")
             else:
@@ -51,10 +49,31 @@ class Database:
                             (movie.title, movie.year, movie.rating, movie.poster, movie.link))
                 conn.commit()
                 print("Movie saved successfully.")
-            
             conn.close()
         except sqlite3.Error as error:
             print("Database error:", error)
+
+    def list_movies(self):
+        conn = sqlite3.connect(self.db_name)
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM movies")
+        rows = cur.fetchall()
+        conn.close()
+        return rows
+
+    def delete_movie(self, title):
+        conn = sqlite3.connect(self.db_name)
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM movies WHERE title = ?", (title,))
+        row = cur.fetchone()
+        if row:
+            cur.execute("DELETE FROM movies WHERE title = ?", (title,))
+            conn.commit()
+            print("Movie deleted.")
+        else:
+            print("Movie not found.")
+        conn.close()
+
 class PosterDownloader:
     def download(self, url, title):
         try:
@@ -64,22 +83,50 @@ class PosterDownloader:
                 print("No URL provided, download skipped.")
         except Exception:
             print("Error downloading poster.")
+
 if __name__ == "__main__":
     db = Database()
     db.setup()
     downloader = PosterDownloader()
     print("Movie Database System")
-    
+
     try:
-        title = input("Movie Title: ")
-        year = input("Year: ")
-        rating = input("Rating: ")
-        poster_url = input("Poster URL: ")
-        web_page = input("Web Page: ")
-        my_movie = Movie(title, year, rating, poster_url, web_page)
-        downloader.download(poster_url, my_movie.title)  
-        db.add_movie(my_movie)
-        print("Process finished.")
+        while True:
+            print("\n1- Add Movie")
+            print("2- List Movies")
+            print("3- Exit")
+            print("4- Delete Movie")
+            choice = input("Select: ")
+
+            if choice == "1":
+                title = input("Movie Title: ")
+                year = input("Year: ")
+                rating = input("Rating: ")
+                poster_url = input("Poster URL: ")
+                web_page = input("Web Page: ")
+                my_movie = Movie(title, year, rating, poster_url, web_page)
+                downloader.download(poster_url, my_movie.title)
+                db.add_movie(my_movie)
+                print("Process finished.")
+
+            elif choice == "2":
+                movies = db.list_movies()
+                if len(movies) == 0:
+                    print("No movies found.")
+                else:
+                    for m in movies:
+                        print(m)
+
+            elif choice == "3":
+                break
+
+            elif choice == "4":
+                del_title = input("Enter movie title to delete: ")
+                db.delete_movie(del_title)
+
+            else:
+                print("Invalid input.")
+
     except ValueError:
         print("Input error: Please check your values.")
     except Exception as error:
