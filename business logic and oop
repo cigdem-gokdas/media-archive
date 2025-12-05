@@ -1,0 +1,86 @@
+import sqlite3
+
+class MediaItem:
+    def get_info(self):
+        raise NotImplementedError("Subclasses must implement this method")
+
+class Movie(MediaItem):
+    def __init__(self, title, year, rating, poster, link):
+        self.title = title
+        self.year = year
+        self.rating = rating
+        self.poster = poster
+        self.link = link
+
+    def update_rating(self, new_rating=None, imdb_score=None):
+        if new_rating is not None:
+            self.rating = new_rating
+        elif imdb_score is not None:
+            self.rating = str(imdb_score)
+
+    def get_info(self):
+        return f"{self.title} ({self.year}) - Rating: {self.rating}"
+
+class Database:
+    def __init__(self):
+        self.db_name = "mymovies.db"
+
+    def setup(self):
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cur = conn.cursor()
+            query = "Create Table If Not Exits movies (title Text, year Text, rating Text, poster Text, link Text)"
+            cur.execute(query)
+            conn.commit()
+            conn.close()
+        except Exception as error:
+            print("Database setup error:", error)
+
+    def add_movie(self, movie):
+        try:
+            conn = sqlite3.connect(self.db_name)
+            cur = conn.cursor()
+
+            cur.execute("SELECT * from movies where title = ?", (movie.title,))
+            row = cur.fetchone()
+
+            if row:
+                print("Movie already exists in the database.")
+            else:
+                cur.execute("Insert into movies values (?, ?, ?, ?, ?)", 
+                            (movie.title, movie.year, movie.rating, movie.poster, movie.link))
+                conn.commit()
+                print("Movie saved successfully.")
+            
+            conn.close()
+        except sqlite3.Error as error:
+            print("Database error:", error)
+class PosterDownloader:
+    def download(self, url, title):
+        try:
+            if url and len(url) > 0:
+                print(f"Downloading poster for '{title}'... Done.")
+            else:
+                print("No URL provided, download skipped.")
+        except Exception:
+            print("Error downloading poster.")
+if __name__ == "__main__":
+    db = Database()
+    db.setup()
+    downloader = PosterDownloader()
+    print("Movie Database System")
+    
+    try:
+        title = input("Movie Title: ")
+        year = input("Year: ")
+        rating = input("Rating: ")
+        poster_url = input("Poster URL: ")
+        web_page = input("Web Page: ")
+        my_movie = Movie(title, year, rating, poster_url, web_page)
+        downloader.download(poster_url, my_movie.title)  
+        db.add_movie(my_movie)
+        print("Process finished.")
+    except ValueError:
+        print("Input error: Please check your values.")
+    except Exception as error:
+        print("An unexpected error occurred:", error)
