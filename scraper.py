@@ -1,108 +1,90 @@
 # playwright ve bs4
+from dataclasses import dataclass
+from typing import Optional
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import json
 
 
-def scrape_media_data(url):
-    print(f"Navigating to: {url}")
+@dataclass
+class MovieData:
+    title: str
+    year: str
+    rating: str
+    poster_url: Optional[str]
+    page_url: str
 
-    data = {}
 
-    with sync_playwright() as pw:
+class IMDBScraper:
 
-        browser = pw.chromium.launch(headless=True)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
-        page = context.new_page()
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
+    def scrape_media_data(self, url: str) -> Optional[MovieData]:
+        print(f"Navigating to: {url}")
 
-            html_content = page.content()
-
-        except Exception as exception:
-            print(f"Error: {exception}")
-            browser.close()
+        html_content = self._fetch_html(url)
+        if not html_content:
             return None
 
-        browser.close()
-    # For finding specific data.
-    soup = BeautifulSoup(html_content, "html.parser")
+        soup = BeautifulSoup(html_content, "html.parser")
+        return self._parse_data(soup, url)
 
-    json_ld_tag = soup.find("script", type="application/ld+json")
+    def _fetch_html(self, url: str) -> Optional[str]:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=True)
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+            page = context.new_page()
+            try:
+                page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
-    if json_ld_tag:
-        try:
-            imdb_data = json.loads(json_ld_tag.string)
-            # Title
-            data["title"] = soup.find("h1").text.strip()
+                return page.content()
 
-            # Poster
-            data["poster_url"] = imdb_data.get("image", None)
+            except Exception as exception:
+                print(f"Error: {exception}")
+                return None
+            finally:
+                browser.close()
 
-            # Puan
-            if "aggregateRating" in imdb_data:
-                data["rating"] = str(
-                    imdb_data["aggregateRating"].get("ratingValue", "N/A"))
-            else:
-                data["rating"] = "N/A"
+    def _parse_data(self, soup: BeautifulSoup, url: str) -> MovieData:
+        title = "Unknown"
+        year = "0000"
+        rating = "N/A"
+        poster_url = None
 
-            # Year
-            if "datePublished" in imdb_data:
-                data["year"] = imdb_data["datePublished"][:4]
-            else:
-                data["year"] = "0000"
+        json_ld_tag = soup.find("script", type="application/ld+json")
+        if json_ld_tag:
+            try:
+                data = json.loads(json_ld_tag.string)
+                title = soup.find("h1").text.strip(
+                ) if soup.find("h1") else "Unknown"
+                poster_url = data.get("image")
 
-            print("Data was pulled from JSON.")
+                if "aggregateRating" in data:
+                    rating = str(data["aggregateRating"].get(
+                        "ratingValue", "N/A"))
 
-        except:
-            print("JSON")
-            data = scrape_from_html(soup)
+                year = data.get("datePublished", "0000")[:4]
+            except:
+                pass
 
-        if data.get("poster_url") and "._V1_" in data["poster_url"]:
-            clean_url = data["poster_url"].split("._V1_")[0] + "._V1_.jpg"
-            data["poster_url"] = clean_url
+        if title == "Unknown":
+            try:
+                title = soup.find("h1").text.strip()
+            except:
+                pass
 
-        data["page_url"] = url
-        return data
+        if rating == "N/A":
+            try:
+                box = soup.find(
+                    "div", attrs={"data-testid": "hero-rating-bar__aggregate-rating__score"})
+                if box:
+                    rating = box.find("span").text.strip()
+            except:
+                pass
 
-    def scrape_from_html(soup):
-        backup_data = {}
+        if poster_url and "._V1_" in poster_url:
+            poster_url = poster_url.split("._V1_")[0] + "._V1_.jpg"
 
-        # Find title of movie
-        try:
-            backup_data["title"] = soup.find("h1").text.strip()
-        except:
-            backup_data["title"] = "Unknown"
+        return MovieData(title=title, year=year, rating=rating, poster_url=poster_url, page_url=url)
 
-        # Find year of movie
-        try:
-            year_link = soup.select_one("a[href*='releaseinfo']")
-            if year_link:
-                backup_data["year"] = year_link.text.strip()
-            else:
-                items = soup.select("ul.ipc-inline-list li")
-                backup_data["year"] = items[0].text.strip(
-                ) if items else "0000"
-        except:
-            backup_data["year"] = "0000"
 
-        # Find rating N/A of movie
-        try:
-            rating_box = soup.find(
-                "div", attrs={"data-testid": "hero-rating-bar__aggregate-rating__score"})
-            if rating_box:
-                backup_data["rating"] = rating_box.find("span").text.strip()
-            else:
-                backup_data["rating"] = "N/A"
-        except:
-            backup_data["rating"] = "N/A"
-
-        # Find poster of movie
-        try:
-            poster_div = soup.find("div", class_="ipc-poster")
-            backup_data["poster_url"] = poster_div.find("img")["src"]
-        except:
-            backup_data["poster_url"] = None
-
-        return backup_data
+scraper = IMDBScraper()
