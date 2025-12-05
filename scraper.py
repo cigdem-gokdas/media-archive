@@ -1,6 +1,6 @@
-# Simple web scraping with requests
+# playwright ve bs4
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-import requests
 import json
 
 
@@ -9,19 +9,23 @@ def scrape_media_data(url):
 
     data = {}
 
-    try:
-        # Make HTTP request with user agent
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        
-        response = requests.get(url, headers=headers, timeout=10)
-        html_content = response.text
+    with sync_playwright() as pw:
 
-    except Exception as exception:
-        print(f"Error: {exception}")
-        return None
+        browser = pw.chromium.launch(headless=True)
+        context = browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+        page = context.new_page()
+        try:
+            page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
+            html_content = page.content()
+
+        except Exception as exception:
+            print(f"Error: {exception}")
+            browser.close()
+            return None
+
+        browser.close()
     # For finding specific data.
     soup = BeautifulSoup(html_content, "html.parser")
 
