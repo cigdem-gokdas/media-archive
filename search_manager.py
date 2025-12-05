@@ -1,12 +1,11 @@
 from playwright.sync_api import sync_playwright
-import json 
+import json  # Used to format the output as a JSON string
 
 def find_link(movie_name):
-    # Inform the user about the search
     print(f"Searching for {movie_name}...")
     query = movie_name.replace(" ", "+")
 
-   # Default result structure (JSON format) to be returned
+    # Initialize the result dictionary
     result = {
         "search_term": movie_name,
         "url": None,
@@ -26,29 +25,36 @@ def find_link(movie_name):
         page = context.new_page()
 
         try:
-            # Navigate to the IMDb search page
             page.goto(f"https://www.imdb.com/find/?q={query}", timeout=30000)
 
-            # Target only the "Titles" section in the search results
+            # Target only the "Titles" section
             selector = "section[data-testid='find-results-section-title'] li a"
 
             page.wait_for_selector(selector, timeout=10000)
 
             first_result = page.locator(selector).first
             href = first_result.get_attribute("href")
-           
-            # Check if a valid link was found
+
             if href and "/title/" in href:
                 final = "https://www.imdb.com" + href.split("?")[0]
-                print("The link is found:", final)
                 
-                
+                # Update the dictionary
                 result["url"] = final
                 result["status"] = "success"
+                
+              
+                # We use json.dumps to pretty-print the dictionary as a JSON string
+                json_output = json.dumps(result, indent=4)
+                print(f"✔ Search Result (JSON):\n{json_output}")
+              
+
                 return result
 
             print("No valid title result found.")
             result["error"] = "No valid title found"
+            
+            # Print failure as JSON too
+            print(f"✘ Search Failed (JSON):\n{json.dumps(result, indent=4)}")
             return result
 
         except Exception as e:
