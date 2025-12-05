@@ -1,45 +1,75 @@
 from pymongo import MongoClient
-import sys
+import json
 
-MONGO_URI = "mongodb+srv://basakeris4_db_user:W75ChngTsbK3oOD9@mediaarchive.sb5mpfd.mongodb.net/?appName=MediaArchive"
+LOCAL_URI = "mongodb://localhost:27017/"
+
+CLOUD_URI = None
 
 def get_database():
-   
     try:
-        client = MongoClient(MONGO_URI)
-       
-        db = client['MediaArchiveDB']
+        uri = CLOUD_URI if CLOUD_URI else LOCAL_URI
+        client = MongoClient(uri)
+        db = client["imdb_database"]
+        print(f"✔ MongoDB connection successful ({'Cloud' if CLOUD_URI else 'Local'})")
         return db
     except Exception as e:
-        print(f" Database error: {e}")
+        print("❌ MongoDB connection error:", e)
         return None
 
-def save_media_to_db(media_data):
-  
-    db = get_database()
-    if db is None:
-        return
 
-    # we used a collection named 'movies' 
-    collection = db['movies']
+db = get_database()
 
-    existing_movie = collection.find_one({"title": media_data["title"]})
-    
-    if existing_movie:
-        print(f"This movie is already on the list: {media_data['title']}")
+collection = db["movies"] if db is not None else None
+
+
+def save_to_mongodb(movie_data):
+    if collection is not None:
+        
+        existing = collection.find_one({
+            "$or": [
+                {"title": movie_data.get("title")},
+                {"page_url": movie_data.get("page_url")}
+            ]
+        })
+
+        if existing:
+            print("ℹ️ This movie is already saved.")
+        else:
+            collection.insert_one(movie_data)
+            print("💾 Movie saved to MongoDB.")
     else:
-        #add some storage space to mongodb 
-        collection.insert_one(media_data)
-        print(f"Saved to database: {media_data['title']}")
+        print("❌ No database connection, save failed.")
 
-def get_all_movies():
-    
-    db = get_database()
-    collection = db['movies']
-    # find all movies and shows
-    movies = collection.find()
-    
-    print("MOVİES FROM THE ARCHIVE ")
-    for movie in movies:
-        print(f"- {movie.get('title')} ({movie.get('year')}) | Puan: {movie.get('rating')}")
-    
+
+def list_movies():
+    if collection is not None:
+        print("\n--- Saved Movies ---")
+        movies = list(collection.find({}, {"_id": 0}))
+
+        if not movies:
+            print("📭 No saved movies.\n")
+            return
+
+        for i, movie in enumerate(movies, start=1):
+            print(f"{i}. {movie.get('title')} ({movie.get('year')}) - ⭐ {movie.get('rating')}")
+        print()
+    else:
+        print("❌ No database connection.")
+
+
+def export_json():
+    if collection is not None:
+        print("\n📤 JSON export started...")
+
+        movies = list(collection.find({}, {"_id": 0}))
+
+        if not movies:
+            print("📭 No movies found in database, JSON cannot be created.\n")
+            return
+
+        with open("movies.json", "w", encoding="utf-8") as f:
+            json.dump(movies, f, ensure_ascii=False, indent=4)
+
+        print("✅ movies.json created successfully!\n")
+    else:
+        print("❌ No database connection.")
