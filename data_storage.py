@@ -1,16 +1,27 @@
 from pymongo import MongoClient
 import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 LOCAL_URI = "mongodb://localhost:27017/"
 
-CLOUD_URI = None
+CLOUD_URI = os.getenv("MONGO_URI")
+
 
 def get_database():
     try:
         uri = CLOUD_URI if CLOUD_URI else LOCAL_URI
-        client = MongoClient(uri)
+
+        client = MongoClient(
+            uri, serverSelectionTimeoutMS=5000)
+
+        client.admin.command('ping')
+
         db = client["imdb_database"]
-        print(f"✔ MongoDB connection successful ({'Cloud' if CLOUD_URI else 'Local'})")
+        print(
+            f"✔ MongoDB connection successful ({'Cloud' if CLOUD_URI else 'Local'})")
         return db
     except Exception as e:
         print("❌ MongoDB connection error:", e)
@@ -24,7 +35,7 @@ collection = db["movies"] if db is not None else None
 
 def save_to_mongodb(movie_data):
     if collection is not None:
-        
+
         existing = collection.find_one({
             "$or": [
                 {"title": movie_data.get("title")},
@@ -51,7 +62,8 @@ def list_movies():
             return
 
         for i, movie in enumerate(movies, start=1):
-            print(f"{i}. {movie.get('title')} ({movie.get('year')}) - ⭐ {movie.get('rating')}")
+            print(
+                f"{i}. {movie.get('title')} ({movie.get('year')}) - ⭐ {movie.get('rating')}")
         print()
     else:
         print("❌ No database connection.")
@@ -73,3 +85,9 @@ def export_json():
         print("✅ movies.json created successfully!\n")
     else:
         print("❌ No database connection.")
+
+
+if __name__ == "__main__":
+    print("Test yapılıyor...")
+    # Veritabanında ne var ne yok bir görelim
+    list_movies()
