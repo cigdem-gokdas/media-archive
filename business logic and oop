@@ -77,7 +77,7 @@ if __name__ == "__main__":
     db.setup()
     downloader = PosterDownloader()
 
-    print("Movie Database System (MongoDB Version)")
+    print("Movie Database System")
 
     try:
         while True:
@@ -89,7 +89,6 @@ if __name__ == "__main__":
             print("f- Movies To Watch")
 
             choice = input("Select: ")
-
             if choice == "a":
                 title = input("Movie Title: ")
                 year = input("Year: ")
@@ -97,17 +96,14 @@ if __name__ == "__main__":
                 poster = input("Poster URL: ")
                 page = input("Web Page: ")
                 watched = input("Did you watch it? (y/n): ").lower()
-
                 if watched == "y":
                     status = "watched"
                 else:
                     status = "not watched"
-
                 m = Movie(title, year, rating, poster, page, status)
                 downloader.download(poster, title)
                 db.add_movie(m)
                 print("Done.")
-
             elif choice == "b":
                 all_movies = db.list_movies()
                 if not all_movies:
@@ -115,7 +111,6 @@ if __name__ == "__main__":
                 else:
                     for m in all_movies:
                         print(m)
-
             elif choice == "e":
                 w_list = db.list_watched()
                 if not w_list:
@@ -123,7 +118,6 @@ if __name__ == "__main__":
                 else:
                     for m in w_list:
                         print(m)
-
             elif choice == "f":
                 n_list = db.list_to_watch()
                 if not n_list:
@@ -131,16 +125,12 @@ if __name__ == "__main__":
                 else:
                     for m in n_list:
                         print(m)
-
             elif choice == "d":
                 name = input("Enter movie title to delete: ")
                 db.delete_movie(name)
-
             elif choice == "c":
                 break
-
             else:
                 print("Invalid choice.")
-
     except Exception as e:
         print("An error happened:", e)
