@@ -87,7 +87,4 @@ def export_json():
         print("❌ No database connection.")
 
 
-if __name__ == "__main__":
-    print("Test yapılıyor...")
-    # Veritabanında ne var ne yok bir görelim
-    list_movies()
+
