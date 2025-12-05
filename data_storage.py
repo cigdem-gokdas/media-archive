@@ -1,13 +1,9 @@
 from pymongo import MongoClient
 import json
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 LOCAL_URI = "mongodb://localhost:27017/"
 
-CLOUD_URI = os.getenv("MONGO_URI")
+CLOUD_URI = None
 
 
 def get_database():
@@ -85,6 +81,3 @@ def export_json():
         print("✅ movies.json created successfully!\n")
     else:
         print("❌ No database connection.")
-
-
-
