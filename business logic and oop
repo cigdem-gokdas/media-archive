@@ -1,136 +1,74 @@
-from pymongo import MongoClient
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict
+from typing import Protocol, Optional, Dict, Any
 
-class MediaItem:
-    def get_info(self):
-        raise NotImplementedError("Subclass should override this")
 
-class Movie(MediaItem):
-    def __init__(self, title, year, rating, poster, link, status):
-        self.title = title
-        self.year = year
-        self.rating = rating
-        self.poster = poster
-        self.link = link
-        self.status = status
+class InfoProtocol(Protocol):
+    def get_info(self) -> str:
+        ...
 
-    def update_rating(self, new_rating=None, imdb_score=None):
-        if new_rating:
-            self.rating = new_rating
-        elif imdb_score:
-            self.rating = str(imdb_score)
-
-    def get_info(self):
-        return f"{self.title} ({self.year}) - Rating: {self.rating} - Status: {self.status}"
-
-class Database:
-    def __init__(self):
-        client = MongoClient("mongodb://localhost:27017/")
-        self.db = client["movie_db"]
-        self.movies = self.db["movies"]
-
-    def setup(self):
+class MediaItem(ABC):
+    @abstractmethod
+    def get_info(self) -> str:
         pass
 
-    def add_movie(self, movie):
-        same_movie = self.movies.find_one({"title": movie.title})
-        if same_movie:
-            print("This movie already exists.")
-            return
-        
-        movie_data = {
-            "title": movie.title,
-            "year": movie.year,
-            "rating": movie.rating,
-            "poster": movie.poster,
-            "link": movie.link,
-            "status": movie.status
-        }
+    @abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        pass
 
-        self.movies.insert_one(movie_data)
-        print("Movie saved.")
+@dataclass
+class BaseMedia:
+    title: str
+    year: str
+    rating: str
+    poster_url: str
+    status: str
+    media_type: str
 
-    def list_movies(self):
-        return list(self.movies.find({}, {"_id": 0}))
 
-    def list_watched(self):
-        return list(self.movies.find({"status": "watched"}, {"_id": 0}))
+class Movie(BaseMedia, MediaItem):
+    def __init__(
+        self,
+        title: str,
+        year: str,
+        rating: str,
+        poster_url: str,
+        status: str = "not watched"
+    ):
+        super().__init__(title, year, rating, poster_url, status, "movie")
 
-    def list_to_watch(self):
-        return list(self.movies.find({"status": "not watched"}, {"_id": 0}))
+    def get_info(self) -> str:
+        return f"[MOVIE] {self.title} - {self.year} ({self.status})"
 
-    def delete_movie(self, title):
-        result = self.movies.delete_one({"title": title})
-        if result.deleted_count > 0:
-            print("Movie deleted.")
-        else:
-            print("Movie not found.")
+    def to_dict(self) -> dict:
+        return asdict(self)
 
-class PosterDownloader:
-    def download(self, url, title):
-        if url:
-            print(f"Downloading poster for {title}... (simulation)")
-        else:
-            print("No URL entered.")
 
-if __name__ == "__main__":
-    db = Database()
-    db.setup()
-    downloader = PosterDownloader()
+class Series(BaseMedia, MediaItem):
+    def __init__(
+        self,
+        title: str,
+        year: str,
+        rating: str,
+        poster_url: str,
+        status: str = "not watched"
+    ):
+        super().__init__(title, year, rating, poster_url, status, "series")
 
-    print("Movie Database System")
+    def get_info(self) -> str:
+        return f"[SERIES] {self.title} - {self.year} ({self.status})"
 
-    try:
-        while True:
-            print("\na- Add Movie")
-            print("b- List All Movies")
-            print("c- Exit")
-            print("d- Delete Movie")
-            print("e- Watched Movies")
-            print("f- Movies To Watch")
+    def to_dict(self) -> dict:
+        return asdict(self)
 
-            choice = input("Select: ")
-            if choice == "a":
-                title = input("Movie Title: ")
-                year = input("Year: ")
-                rating = input("Rating: ")
-                poster = input("Poster URL: ")
-                page = input("Web Page: ")
-                watched = input("Did you watch it? (y/n): ").lower()
-                if watched == "y":
-                    status = "watched"
-                else:
-                    status = "not watched"
-                m = Movie(title, year, rating, poster, page, status)
-                downloader.download(poster, title)
-                db.add_movie(m)
-                print("Done.")
-            elif choice == "b":
-                all_movies = db.list_movies()
-                if not all_movies:
-                    print("No movies yet.")
-                else:
-                    for m in all_movies:
-                        print(m)
-            elif choice == "e":
-                w_list = db.list_watched()
-                if not w_list:
-                    print("No watched movies.")
-                else:
-                    for m in w_list:
-                        print(m)
-            elif choice == "f":
-                n_list = db.list_to_watch()
-                if not n_list:
-                    print("No movies waiting to be watched.")
-                else:
-                    for m in n_list:
-                        print(m)
-            elif choice == "d":
-                name = input("Enter movie title to delete: ")
-                db.delete_movie(name)
-            elif choice == "c":
-                break
-            else:
-                print("Invalid choice.")
-    except Exception as e:
-        print("An error happened:", e)
+class SimpleORM:
+    def __init__(self):
+        self.storage: Dict[str, Dict[str, Any]] = {}
+
+    def save(self, item: MediaItem):
+        data = item.to_dict()
+        key = data["title"]
+        self.storage[key] = data
+
+    def find(self, title: str) -> Optional[Dict[str, Any]]:
+        return self.storage.get(title, None)
