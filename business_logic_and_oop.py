@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, ClassVar, Set
 
+
 class MediaItem(ABC):
     """
     Abstract Base Class that enforces implementation of info
@@ -20,6 +21,7 @@ class MediaItem(ABC):
     @abstractmethod
     def to_dict(self) -> Dict[str, Any]:
         """Convert the object to a dictionary."""
+
 
 @dataclass
 class BaseMedia:
@@ -40,7 +42,8 @@ class Movie(BaseMedia, MediaItem):
     Concrete class representing a Movie, inheriting from BaseMedia and MediaItem.
     """
     VALID_STATUSES: ClassVar[Set[str]] = {"watched", "not watched"}
-    
+
+    # pylint: disable=R0913, R0917
     def __init__(
         self,
         title: str,
@@ -54,7 +57,7 @@ class Movie(BaseMedia, MediaItem):
         clean_status = status.lower()
         if clean_status not in self.VALID_STATUSES:
             clean_status = "not watched"
-            
+
         # Pylint complains about too many arguments (limit is 5), but we need them here.
         # pylint: disable=too-many-arguments, too-many-positional-arguments
         super().__init__(title, year, rating, poster_url, page_url, clean_status, "movie")

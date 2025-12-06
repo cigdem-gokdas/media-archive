@@ -11,6 +11,8 @@
 * **Live Monitoring:** A background service that periodically checks archived media for rating updates and keeps the database synchronized.
 * **Data Export:** Export your entire collection to a JSON file for backup or external use.
 * **Status Tracking:** Mark movies and series as 'Watched' (✅) or 'Not Watched' (📅) directly from the CLI to keep track of your viewing progress.
+* **Graph Database Support (Bonus):** Implements **FalkorDB** alongside MongoDB, demonstrating a **Polyglot Persistence** architecture to model data relationships using a Graph structure.
+* **Fault Tolerant Architecture:** The system uses a fail-safe mechanism; if FalkorDB (Docker) is not running, it automatically degrades to MongoDB-only mode without crashing.
 
 ## Tech Stack
 
@@ -19,6 +21,8 @@
 * **Database:** MongoDB (PyMongo)
 * **Network:** Requests (for image downloads)
 * **Configuration:** Python-dotenv
+* **Graph Database:** FalkorDB (Redis-based Graph DB)
+* **Containerization:** Docker (for running FalkorDB)
 
 ## Project Structure
 
@@ -29,6 +33,7 @@
 * `poster_manager.py` - Handles downloading and saving images.
 * `monitoring.py` - Background process for updating ratings.
 * `business_logic_and_oop.py` - Data classes and interface definitions.
+* `falkor.py` - Manages Graph Database connections and Cypher queries.
 
 ## Installation
 
@@ -69,6 +74,24 @@
     MONGO_URI="mongodb://localhost:27017/" 
     # Or your MongoDB Atlas connection string
     ```
+
+## How to Enable Graph Database (Bonus Feature)
+
+To unlock the **FalkorDB ** features, you need **Docker**. The system is designed to check for this container at startup.
+
+1.  **Run the FalkorDB Container:**
+    ```bash
+    docker run -p 6379:6379 -it --rm falkordb/falkordb
+    ```
+
+2.  **Start the Application:**
+    Open a new terminal and run:
+    ```bash
+    python main.py
+    ```
+
+3.  **Verification:**
+    You will see `✔ Connected to FalkorDB (Graph Mode Active)` in the startup logs. When you add a movie, it will be synced to the Graph automatically.
 
 ## Usage
 

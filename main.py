@@ -7,14 +7,14 @@ import sys
 import time
 from dotenv import load_dotenv
 
-# Senin modüllerin
+from falkor import falkor_db
 import search_manager
 from scraper import scraper
 from data_storage import MongoStorage
 from poster_manager import PosterManager
 from monitoring import ArchiveMonitor
 
-# Business Logic Importları
+# Business Logic Imports
 from business_logic_and_oop import Movie, Series
 
 
@@ -64,7 +64,7 @@ def add_media_workflow(storage, poster_mgr):
 
     print(f"✔ Data found: {data.title} ({data.year}) - ⭐ {data.rating}")
 
-    # --- TÜR SEÇİMİ (Movie vs Series) ---
+    # ---(Movie vs Series) ---
     print("\nIs this a Movie or a TV Series?")
     print("1. Movie ")
     print("2. TV Series ")
@@ -120,6 +120,7 @@ def add_media_workflow(storage, poster_mgr):
 
     # Veritabanına kaydet
     storage.save(media_obj)
+    falkor_db.save_media(media_obj)
 
 
 def list_saved_media(storage):
@@ -139,13 +140,12 @@ def list_saved_media(storage):
     print("\n---  Your Archive ---")
     for record in records:
         try:
-            
             if "page_url" not in record:
                 record["page_url"] = ""
             if "status" not in record:
                 record["status"] = "not watched"
 
-            m_type = record.get("media_type", "movie")  
+            m_type = record.get("media_type", "movie")
 
             params = {
                 "title": record.get("title"),
