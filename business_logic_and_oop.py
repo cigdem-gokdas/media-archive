@@ -5,13 +5,7 @@ abstract base classes, and concrete media types (Movie, Series).
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from typing import Protocol, Optional, Dict, Any
-
-class InfoProtocol(Protocol):
-    """Protocol defining objects that can provide information string."""
-    # pylint: disable=too-few-public-methods
-    def get_info(self) -> str:
-        """Return a formatted information string."""
+from typing import Dict, Any, ClassVar, Set
 
 class MediaItem(ABC):
     """
@@ -36,6 +30,7 @@ class BaseMedia:
     year: str
     rating: str
     poster_url: str
+    page_url: str
     status: str
     media_type: str
 
@@ -44,21 +39,29 @@ class Movie(BaseMedia, MediaItem):
     """
     Concrete class representing a Movie, inheriting from BaseMedia and MediaItem.
     """
+    VALID_STATUSES: ClassVar[Set[str]] = {"watched", "not watched"}
+    
     def __init__(
         self,
         title: str,
         year: str,
         rating: str,
         poster_url: str,
+        page_url: str,
         status: str = "not watched"
     ):
         """Initialize a Movie object."""
+        clean_status = status.lower()
+        if clean_status not in self.VALID_STATUSES:
+            clean_status = "not watched"
+            
         # Pylint complains about too many arguments (limit is 5), but we need them here.
         # pylint: disable=too-many-arguments, too-many-positional-arguments
-        super().__init__(title, year, rating, poster_url, status, "movie")
+        super().__init__(title, year, rating, poster_url, page_url, clean_status, "movie")
 
     def get_info(self) -> str:
-        return f"[MOVIE] {self.title} - {self.year} ({self.status})"
+        icon = "✅" if self.status == "watched" else "📅"
+        return f"🎬 MOVIE: {self.title} ({self.year}) | {icon} {self.status.upper()}"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -68,6 +71,8 @@ class Series(BaseMedia, MediaItem):
     """
     Concrete class representing a Series, inheriting from BaseMedia and MediaItem.
     """
+    VALID_STATUSES: ClassVar[Set[str]] = {"watched", "not watched", "watching"}
+
     # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
         self,
@@ -75,30 +80,25 @@ class Series(BaseMedia, MediaItem):
         year: str,
         rating: str,
         poster_url: str,
+        page_url: str,
         status: str = "not watched"
     ):
-        super().__init__(title, year, rating, poster_url, status, "series")
+        clean_status = status.lower()
+        if clean_status not in self.VALID_STATUSES:
+            clean_status = "not watched"
+
+        # DÜZELTİLEN SATIR: _init_ yerine __init__ yapıldı
+        super().__init__(title, year, rating, poster_url, page_url, clean_status, "series")
 
     def get_info(self) -> str:
-        return f"[SERIES] {self.title} - {self.year} ({self.status})"
+        if self.status == "watching":
+            icon = "▶"
+        elif self.status == "watched":
+            icon = "✅"
+        else:
+            icon = "📅"
+
+        return f"📺 SERIES: {self.title} ({self.year}) | {icon} {self.status.upper()}"
 
     def to_dict(self) -> dict:
         return asdict(self)
-
-class SimpleORM:
-    """
-    A simple Object-Relational Mapping (ORM) class to handle
-    in-memory storage of media items.
-    """
-    def __init__(self):
-        self.storage: Dict[str, Dict[str, Any]] = {}
-
-    def save(self, item: MediaItem):
-        """Save a media item to the internal storage."""
-        data = item.to_dict()
-        key = data["title"]
-        self.storage[key] = data
-
-    def find(self, title: str) -> Optional[Dict[str, Any]]:
-        """Find and return a media item by title."""
-        return self.storage.get(title, None)
