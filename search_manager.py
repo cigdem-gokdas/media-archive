@@ -1,7 +1,14 @@
+"""
+This module handles the search functionality for IMDb using Playwright.
+It navigates to IMDb, searches for a query, and extracts the first result's URL.
+"""
+import json
 from playwright.sync_api import sync_playwright
-import json  # Used to format the output as a JSON string
 
 def find_link(movie_name):
+    """
+    Searches for a movie on IMDb and returns the link to its page.
+    """
     print(f"Searching for {movie_name}...")
     query = movie_name.replace(" ", "+")
 
@@ -37,27 +44,25 @@ def find_link(movie_name):
 
             if href and "/title/" in href:
                 final = "https://www.imdb.com" + href.split("?")[0]
-                
+
                 # Update the dictionary
                 result["url"] = final
                 result["status"] = "success"
-                
-              
+
                 # We use json.dumps to pretty-print the dictionary as a JSON string
                 json_output = json.dumps(result, indent=4)
                 print(f"✔ Search Result (JSON):\n{json_output}")
-              
 
                 return result
-
+            # Logic for when no valid link is found
             print("No valid title result found.")
             result["error"] = "No valid title found"
-            
+
             # Print failure as JSON too
             print(f"✘ Search Failed (JSON):\n{json.dumps(result, indent=4)}")
             return result
 
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-exception-caught
             print("Error:", e)
             result["error"] = str(e)
             return result
