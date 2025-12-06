@@ -1,0 +1,6 @@
+playwright
+pymongo
+beautifulsoup4
+requests
+python-dotenv
+pylint
