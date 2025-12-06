@@ -23,7 +23,7 @@ def print_menu():
     Display the main interactive menu options to the console.
     """
     print("\n" + "="*34)
-    print("🎬 MEDIA ARCHIVE MANAGER")
+    print("MEDIA ARCHIVE MANAGER")
     print("="*34)
     print("1. Add New Movie or TV Show")
     print("2. List Saved Media (w/ Status)")
@@ -52,28 +52,28 @@ def add_media_workflow(storage, poster_mgr):
         return
 
     url = search_result["url"]
-    print(f"🌍 Link found: {url}")
-    print("📥 Fetching data...")
+    print(f" Link found: {url}")
+    print(" Fetching data...")
 
     # Scraper'dan MovieData objesi döner
     data = scraper.scrape_media_data(url)
 
     if not data:
-        print("❌ Failed to fetch data.")
+        print(" Failed to fetch data.")
         return
 
     print(f"✔ Data found: {data.title} ({data.year}) - ⭐ {data.rating}")
 
     # --- TÜR SEÇİMİ (Movie vs Series) ---
     print("\nIs this a Movie or a TV Series?")
-    print("1. Movie 🎬")
-    print("2. TV Series 📺")
+    print("1. Movie ")
+    print("2. TV Series ")
     type_choice = input("Select (1/2): ")
 
     media_obj = None
 
     if type_choice == '1':
-        # FİLM
+        # movie
         print("Watched? (y/n): ", end="")
         status = "watched" if input().lower() == 'y' else "not watched"
 
@@ -87,11 +87,11 @@ def add_media_workflow(storage, poster_mgr):
         )
 
     elif type_choice == '2':
-        # DİZİ (Watching durumu var)
+        # tv series
         print("Status?")
-        print("1. To Watch (📅)")
-        print("2. Watching (▶)")
-        print("3. Watched (✅)")
+        print("1. To Watch ")
+        print("2. Watching ")
+        print("3. Watched ")
         s_choice = input("Select (1-3): ")
 
         if s_choice == '2':
@@ -110,12 +110,12 @@ def add_media_workflow(storage, poster_mgr):
             status=status
         )
     else:
-        print("❌ Invalid selection.")
+        print(" Invalid selection.")
         return
 
     # Posteri indir
     if data.poster_url:
-        print("🖼 Downloading poster...")
+        print(" Downloading poster...")
         poster_mgr.download_poster(data.poster_url, data.title)
 
     # Veritabanına kaydet
@@ -136,21 +136,17 @@ def list_saved_media(storage):
         print("Archive is empty.")
         return
 
-    print("\n--- 🎬 Your Archive ---")
+    print("\n---  Your Archive ---")
     for record in records:
         try:
-            # Eksik alanları tamamla
+            
             if "page_url" not in record:
                 record["page_url"] = ""
             if "status" not in record:
                 record["status"] = "not watched"
 
-            # Media Type kontrolü
-            m_type = record.get("media_type", "movie")  # Varsayılan movie
+            m_type = record.get("media_type", "movie")  
 
-            # Nesneyi oluştur
-            # Movie ve Series sınıflarının parametre isimleri aynı olduğu için
-            # dinamik sözlük (dictionary unpacking) kullanabiliriz.
             params = {
                 "title": record.get("title"),
                 "year": record.get("year"),
@@ -177,14 +173,14 @@ def update_status_workflow(storage):
     Update status logic.
     """
     if storage.collection is None:
-        print("❌ No database connection.")
+        print("No database connection.")
         return
 
     search_term = input("\nEnter name to update: ").strip().lower()
     if not search_term:
         return
 
-    # Tüm veriyi çekip Python'da filtreliyoruz (Büyük/Küçük harf sorunu olmaz)
+    # We pull all the data and filter it in Python (no uppercase/lowercase problem)
     all_media = list(storage.collection.find({}, {"_id": 0}))
 
     matches = []
@@ -193,7 +189,7 @@ def update_status_workflow(storage):
             matches.append(media)
 
     if not matches:
-        print("❌ Not found.")
+        print(" Not found.")
         return
 
     selected = matches[0]
@@ -212,7 +208,6 @@ def update_status_workflow(storage):
     current_status = selected.get('status', 'not watched')
     print(f"Current: {current_status}")
 
-    # Diziler için ekstra seçenek sun
     is_series = selected.get("media_type") == "series"
 
     print("1. Watched ")
@@ -269,12 +264,12 @@ def main():
                 monitor = ArchiveMonitor(interval_hours=6)
                 monitor.start()
             except KeyboardInterrupt:
-                print("\n🛑 Monitoring stopped.")
+                print("\n Monitoring stopped.")
         elif choice == '6':
             print("Exiting...")
             sys.exit()
         else:
-            print("❌ Invalid choice, please try 1-6.")
+            print(" Invalid choice, please try 1-6.")
 
         time.sleep(1)
 
