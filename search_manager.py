@@ -5,6 +5,7 @@ It navigates to IMDb, searches for a query, and extracts the first result's URL.
 import json
 from playwright.sync_api import sync_playwright
 
+
 def find_link(movie_name):
     """
     Searches for a movie on IMDb and returns the link to its page.
@@ -62,7 +63,7 @@ def find_link(movie_name):
             print(f"✘ Search Failed (JSON):\n{json.dumps(result, indent=4)}")
             return result
 
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             print("Error:", e)
             result["error"] = str(e)
             return result

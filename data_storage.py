@@ -48,7 +48,10 @@ class MongoStorage(StorageBase):
         self.local_uri = "mongodb://localhost:27017/"
 
         self.db = self._connect()
-        self.collection = self.db["movies"] if self.db else None
+        if self.db is not None:
+            self.collection = self.db["movies"]
+        else:
+            self.collection = None
 
     def _connect(self):
         """Connect to MongoDB."""
@@ -56,7 +59,8 @@ class MongoStorage(StorageBase):
             uri = self.cloud_uri or self.local_uri
             client = MongoClient(uri)
             db = client["imdb_database"]
-            print(f"✔ Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
+            print(
+                f"✔ Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
             return db
         except Exception as e:
             print("❌ MongoDB connection error:", e)
