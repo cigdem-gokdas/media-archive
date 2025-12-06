@@ -4,7 +4,7 @@ and JSON exports for movie data.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from typing import List
+from typing import List,Optional
 import json
 import os
 
@@ -21,6 +21,9 @@ class Movie:
     year: str
     rating: str
     page_url: str
+
+    poster_url: Optional[str] = None
+    last_updated: Optional[str] = None
 
 
 class StorageBase(ABC):
@@ -69,7 +72,7 @@ class MongoStorage(StorageBase):
 
     def save(self, movie: Movie) -> None:
         """Save Movie dataclass to MongoDB."""
-        if not self.collection:
+        if self.collection is None:
             print("No database connection.")
             return
 
@@ -91,13 +94,19 @@ class MongoStorage(StorageBase):
 
     def list_all(self) -> List[Movie]:
         """Return all stored movies as Movie dataclasses."""
-        if not self.collection:
+        if self.collection is None:
             print("No database connection.")
             return []
 
         records = list(self.collection.find({}, {"_id": 0}))
-        movies = [Movie(**record) for record in records]
 
+        movies = []
+        for record in records:
+            # Sadece Movie sınıfında tanımlı olan key'leri alalım
+            # Bu sayede veritabanında bilinmeyen ekstra bir alan varsa patlamaz
+            valid_keys = {k: v for k, v in record.items() if k in Movie.__annotations__}
+            movies.append(Movie(**valid_keys))
+            
         print("\n--- Saved Movies ---")
         for i, m in enumerate(movies, start=1):
             print(f"{i}. {m.title} ({m.year}) ⭐ {m.rating}")
