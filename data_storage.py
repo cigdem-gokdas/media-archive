@@ -1,6 +1,10 @@
+"""
+This module handles data storage operations, including MongoDB connections
+and JSON exports for movie data.
+"""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from typing import List, Optional
+from typing import List
 import json
 import os
 
@@ -9,7 +13,6 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-
 
 @dataclass
 class Movie:
@@ -26,17 +29,15 @@ class StorageBase(ABC):
     @abstractmethod
     def save(self, movie: Movie) -> None:
         """Save a movie into storage."""
-        pass
 
     @abstractmethod
     def list_all(self) -> List[Movie]:
         """Return all stored movie objects."""
-        pass
+
 
     @abstractmethod
     def export_json(self, filename: str = "movies.json") -> None:
         """Export movie list to JSON file."""
-        pass
 
 
 class MongoStorage(StorageBase):
@@ -60,16 +61,16 @@ class MongoStorage(StorageBase):
             client = MongoClient(uri)
             db = client["imdb_database"]
             print(
-                f"✔ Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
+                f"Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
             return db
-        except Exception as e:
-            print("❌ MongoDB connection error:", e)
+        except Exception as e: # pylint: disable=broad-exception-caught
+            print("MongoDB connection error:", e)
             return None
 
     def save(self, movie: Movie) -> None:
         """Save Movie dataclass to MongoDB."""
         if not self.collection:
-            print("❌ No database connection.")
+            print("No database connection.")
             return
 
         movie_dict = asdict(movie)
@@ -82,16 +83,16 @@ class MongoStorage(StorageBase):
         })
 
         if existing:
-            print(f"ℹ️ Movie '{movie.title}' already exists.")
+            print(f"Movie '{movie.title}' already exists.")
             return
 
         self.collection.insert_one(movie_dict)
-        print(f"💾 '{movie.title}' saved successfully.")
+        print(f"'{movie.title}' saved successfully.")
 
     def list_all(self) -> List[Movie]:
         """Return all stored movies as Movie dataclasses."""
         if not self.collection:
-            print("❌ No database connection.")
+            print("No database connection.")
             return []
 
         records = list(self.collection.find({}, {"_id": 0}))
@@ -107,7 +108,7 @@ class MongoStorage(StorageBase):
         movies = self.list_all()
 
         if not movies:
-            print("📭 No movies to export.")
+            print("No movies to export.")
             return
 
         data = [asdict(movie) for movie in movies]
@@ -115,4 +116,4 @@ class MongoStorage(StorageBase):
         with open(filename, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
 
-        print(f"✅ Exported to {filename} successfully.")
+        print(f"Exported to {filename} successfully.")
