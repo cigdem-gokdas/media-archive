@@ -1,18 +1,19 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from typing import List, Optional
-from pymongo import MongoClient
 import json
 import os
+
+from pymongo import MongoClient
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
 
-
 @dataclass
 class Movie:
+    """Dataclass representing a movie item."""
     title: str
     year: str
     rating: str
@@ -20,24 +21,29 @@ class Movie:
 
 
 class StorageBase(ABC):
+    """Defines the required storage interface for all storage types."""
 
     @abstractmethod
     def save(self, movie: Movie) -> None:
+        """Save a movie into storage."""
         pass
 
     @abstractmethod
     def list_all(self) -> List[Movie]:
+        """Return all stored movie objects."""
         pass
 
     @abstractmethod
     def export_json(self, filename: str = "movies.json") -> None:
+        """Export movie list to JSON file."""
         pass
 
 
-
 class MongoStorage(StorageBase):
+    """MongoDB storage implementation using Movie dataclass."""
 
     def __init__(self):
+        """Initialize MongoDB connection."""
         self.cloud_uri = os.getenv("MONGO_URI")
         self.local_uri = "mongodb://localhost:27017/"
 
@@ -45,22 +51,19 @@ class MongoStorage(StorageBase):
         self.collection = self.db["movies"] if self.db else None
 
     def _connect(self):
-
+        """Connect to MongoDB."""
         try:
             uri = self.cloud_uri or self.local_uri
             client = MongoClient(uri)
             db = client["imdb_database"]
-
             print(f"✔ Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
             return db
-
         except Exception as e:
             print("❌ MongoDB connection error:", e)
             return None
 
-
     def save(self, movie: Movie) -> None:
-
+        """Save Movie dataclass to MongoDB."""
         if not self.collection:
             print("❌ No database connection.")
             return
@@ -82,7 +85,7 @@ class MongoStorage(StorageBase):
         print(f"💾 '{movie.title}' saved successfully.")
 
     def list_all(self) -> List[Movie]:
-
+        """Return all stored movies as Movie dataclasses."""
         if not self.collection:
             print("❌ No database connection.")
             return []
@@ -93,11 +96,10 @@ class MongoStorage(StorageBase):
         print("\n--- Saved Movies ---")
         for i, m in enumerate(movies, start=1):
             print(f"{i}. {m.title} ({m.year}) ⭐ {m.rating}")
-
         return movies
 
     def export_json(self, filename: str = "movies.json") -> None:
-
+        """Export all movies to a JSON file."""
         movies = self.list_all()
 
         if not movies:
