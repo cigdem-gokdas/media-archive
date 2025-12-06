@@ -1,9 +1,3 @@
-"""
-FULL ROBUSTNESS TEST SUITE
-This module performs comprehensive Unit, Integration, and Robustness tests.
-It covers OOP logic, database integrity, network resilience, and edge-case inputs.
-"""
-
 import unittest
 from unittest.mock import MagicMock, patch
 import os
@@ -18,9 +12,7 @@ from search_manager import find_link
 
 
 class TestMediaModels(unittest.TestCase):
-    """
-    [UNIT] Tests the OOP structure and data models.
-    """
+    """Tests the OOP structure and data models."""
 
     def test_movie_creation(self):
         # Tests if Movie class correctly inherits 'movie' type
@@ -53,9 +45,7 @@ class TestMediaModels(unittest.TestCase):
 
 
 class TestInputSanitization(unittest.TestCase):
-    """
-    [ROBUSTNESS] Tests if the system handles bad inputs safely.
-    """
+    """Tests if the system handles bad inputs safely."""
 
     def setUp(self):
         self.pm = PosterManager(folder_name="test_posters")
@@ -81,10 +71,8 @@ class TestInputSanitization(unittest.TestCase):
         self.assertEqual(clean_name, "Inception Movie")
 
 
-class TestScraperResilience(unittest.TestCase):
-    """
-    [ROBUSTNESS] Tests how the scraper handles errors (Mocked).
-    """
+class TestScraperRobustness(unittest.TestCase):
+    """Tests how the scraper handles errors (Mocked)."""
 
     def setUp(self):
         self.scraper = IMDBScraper()
@@ -108,9 +96,7 @@ class TestScraperResilience(unittest.TestCase):
 
 
 class TestDatabaseLogic(unittest.TestCase):
-    """
-    [INTEGRATION] Tests database connection and logic (Mocked).
-    """
+    """Tests database connection and logic (Mocked)."""
 
     @patch('data_storage.MongoClient')
     def test_connection_failure(self, mock_client):
@@ -140,9 +126,7 @@ class TestDatabaseLogic(unittest.TestCase):
 
 
 class TestSearchManager(unittest.TestCase):
-    """
-    [UNIT] Tests the search module functionality.
-    """
+    """Tests the search module functionality."""
 
     @patch('search_manager.sync_playwright')
     def test_search_no_results(self, mock_pw):
@@ -159,26 +143,47 @@ class TestSearchManager(unittest.TestCase):
 
 class TestEdgeCaseInputs(unittest.TestCase):
     """
-    [ROBUSTNESS] Advanced Input Handling (Edge Cases).
+    [ROBUSTNESS] Advanced Input Handling
+    Tests how the system reacts to weird, empty, or extreme inputs.
     """
 
     @patch('search_manager.sync_playwright')
     def test_search_case_insensitivity(self, mock_pw):
         # Scenario: User types 'mAtRiX' instead of 'Matrix'
+        # Expectation: The system should process it without crashing.
+
+        # Setup mock to avoid opening real browser
         mock_browser = mock_pw.return_value.__enter__.return_value.chromium.launch.return_value
         mock_page = mock_browser.new_context.return_value.new_page.return_value
+        # Simulate not finding it (we just want to check if the function runs)
         mock_page.locator.return_value.first.get_attribute.return_value = None
 
         try:
+            # We run search with mixed case
             result = find_link("mAtRiX ReLoAdEd")
+            # If it reached here, it didn't crash on string manipulation
             self.assertIsInstance(result, dict)
             self.assertEqual(result["search_term"], "mAtRiX ReLoAdEd")
         except Exception as e:
             self.fail(f"Search crashed on mixed case input: {e}")
 
+    def test_model_whitespace_trimming(self):
+        # Scenario: User enters "  Inception  " (with spaces)
+        # The poster manager sanitization should clean this up for filenames.
+        pm = PosterManager()
+        dirty_input = "   The Dark Knight   "
+        clean_filename = pm._sanitize_filename(dirty_input)
+
+        # Expectation: "The Dark Knight" (No leading/trailing spaces)
+        self.assertEqual(clean_filename, "The Dark Knight")
+        self.assertFalse(clean_filename.startswith(" "))
+        self.assertFalse(clean_filename.endswith(" "))
+
     def test_extreme_input_length(self):
         # Scenario: User pastes a 5000-character string as title
         long_title = "A" * 5000
+
+        # The system should verify creating a Movie object doesn't cause buffer overflow or crash
         try:
             movie = Movie(long_title, "2024", "1.0", "url", "link")
             self.assertEqual(len(movie.title), 5000)
@@ -188,16 +193,20 @@ class TestEdgeCaseInputs(unittest.TestCase):
 
 class TestFileSystemResilience(unittest.TestCase):
     """
-    [ROBUSTNESS] File System & Permission Errors.
+    [ROBUSTNESS] File System & Permission Errors
+    Tests what happens if the computer denies file access (PermissionDenied).
     """
 
     @patch('builtins.open')
     def test_json_export_permission_error(self, mock_open):
-        # Scenario: The system tries to save 'movies.json' but access is denied.
+        # Scenario: The system tries to save 'movies.json' but the folder is Read-Only.
+        # Expectation: The code should catch the error and print a message, NOT crash.
+
+        # Simulate PermissionError
         mock_open.side_effect = PermissionError("Access Denied")
 
         storage = MongoStorage()
-        # Mocking list_all so export tries to run
+        # Mocking the list_all method to return one movie so export tries to run
         with patch.object(storage, 'list_all', return_value=[Movie("Test", "2020", "5", "url", "link")]):
             try:
                 storage.export_json("movies.json")
@@ -205,12 +214,22 @@ class TestFileSystemResilience(unittest.TestCase):
                 self.fail(
                     "The application crashed! It should have handled PermissionError gracefully.")
             except Exception:
-                pass
+                pass  # Any other exception handled is fine
+
+    def test_poster_manager_bad_path(self):
+        # Scenario: Trying to save a poster to a non-existent drive/path
+        # e.g., using a forbidden character in folder name
+        pm = PosterManager(folder_name="INVALID_FOLDER_<>|")
+
+        # The _create_folder method has a try-except block.
+        # It should print an error but not stop execution.
+        self.assertTrue(True)  # If we reached here, __init__ didn't crash.
 
 
 class TestDeepValidation(unittest.TestCase):
     """
-    [UNIT] Logic Validation.
+    [UNIT] Deep Validation of Logic
+    Checking logic flow beyond simple existence.
     """
 
     def test_movie_vs_series_logic(self):
@@ -218,21 +237,24 @@ class TestDeepValidation(unittest.TestCase):
         m = Movie("M", "2000", "1", "u", "l")
         s = Series("S", "2000", "1", "u", "l")
 
+        # They should behave differently in type checks
         self.assertNotEqual(m.media_type, s.media_type)
         self.assertTrue(m.media_type == "movie")
         self.assertFalse(s.media_type == "movie")
 
     def test_numeric_validation_in_strings(self):
-        # Scenario: Year comes as "2023" (string). System should accept it.
+        # Scenario: Year comes as "2023" (string) but implies a number.
+        # We check if our logic handles it as a string without forcing int conversion crash
         movie = Movie("Test", "2023", "9.0", "url", "link")
+
+        # Python allows string validation
         self.assertTrue(movie.year.isdigit())
 
-        # What if year is "Unknown"? It should still accept it as string without crashing
+        # What if year is "Unknown"? It should still accept it as string
         movie_unknown = Movie("Test", "Unknown", "9.0", "url", "link")
         self.assertEqual(movie_unknown.year, "Unknown")
 
 
 if __name__ == '__main__':
-    print("\n🛡️  STARTING ROBUSTNESS & VULNERABILITY TESTS  🛡️")
-    print("="*60)
+    print("\nRunning Robustness Tests...")
     unittest.main(verbosity=2)

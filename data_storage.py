@@ -4,7 +4,7 @@ and JSON exports for movie data.
 """
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
-from typing import List,Optional
+from typing import List, Optional
 import json
 import os
 
@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
 
 @dataclass
 class Movie:
@@ -36,7 +37,6 @@ class StorageBase(ABC):
     @abstractmethod
     def list_all(self) -> List[Movie]:
         """Return all stored movie objects."""
-
 
     @abstractmethod
     def export_json(self, filename: str = "movies.json") -> None:
@@ -66,7 +66,8 @@ class MongoStorage(StorageBase):
             print(
                 f"Connected to MongoDB ({'Cloud' if self.cloud_uri else 'Local'})")
             return db
-        except Exception as e: # pylint: disable=broad-exception-caught
+         # pylint: disable=broad-exception-caught
+        except Exception as e:
             print("MongoDB connection error:", e)
             return None
 
@@ -102,11 +103,10 @@ class MongoStorage(StorageBase):
 
         movies = []
         for record in records:
-            # Sadece Movie sınıfında tanımlı olan key'leri alalım
-            # Bu sayede veritabanında bilinmeyen ekstra bir alan varsa patlamaz
-            valid_keys = {k: v for k, v in record.items() if k in Movie.__annotations__}
+            valid_keys = {k: v for k,
+                          v in record.items() if k in Movie.__annotations__}
             movies.append(Movie(**valid_keys))
-            
+
         print("\n--- Saved Movies ---")
         for i, m in enumerate(movies, start=1):
             print(f"{i}. {m.title} ({m.year}) ⭐ {m.rating}")
@@ -114,15 +114,19 @@ class MongoStorage(StorageBase):
 
     def export_json(self, filename: str = "movies.json") -> None:
         """Export all movies to a JSON file."""
-        movies = self.list_all()
+        try:
+            movies = self.list_all()
+            if not movies:
+                print("No movies to export.")
+                return
 
-        if not movies:
-            print("No movies to export.")
-            return
+            data = movies
+            with open(filename, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
 
-        data = [asdict(movie) for movie in movies]
-
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-
-        print(f"Exported to {filename} successfully.")
+            print(f"Exported to {filename} successfully.")
+        except PermissionError:
+            print(f" Permission denied: Cannot write to {filename}")
+        # pylint: disable=broad-exception-caught
+        except Exception as e:
+            print(f" Error exporting JSON: {e}")
