@@ -17,6 +17,7 @@ from monitoring import ArchiveMonitor
 # Business Logic Importları
 from business_logic_and_oop import Movie, Series
 
+
 def print_menu():
     """
     Display the main interactive menu options to the console.
@@ -31,6 +32,7 @@ def print_menu():
     print("5. Start Monitoring Mode")
     print("6. Exit")
     print("="*34)
+
 
 def add_media_workflow(storage, poster_mgr):
     """
@@ -74,7 +76,7 @@ def add_media_workflow(storage, poster_mgr):
         # FİLM
         print("Watched? (y/n): ", end="")
         status = "watched" if input().lower() == 'y' else "not watched"
-        
+
         media_obj = Movie(
             title=data.title,
             year=data.year,
@@ -91,10 +93,13 @@ def add_media_workflow(storage, poster_mgr):
         print("2. Watching (▶)")
         print("3. Watched (✅)")
         s_choice = input("Select (1-3): ")
-        
-        if s_choice == '2': status = "watching"
-        elif s_choice == '3': status = "watched"
-        else: status = "not watched"
+
+        if s_choice == '2':
+            status = "watching"
+        elif s_choice == '3':
+            status = "watched"
+        else:
+            status = "not watched"
 
         media_obj = Series(
             title=data.title,
@@ -116,6 +121,7 @@ def add_media_workflow(storage, poster_mgr):
     # Veritabanına kaydet
     storage.save(media_obj)
 
+
 def list_saved_media(storage):
     """
     Lists media correctly distinguishing between Movie and Series.
@@ -125,7 +131,7 @@ def list_saved_media(storage):
         return
 
     records = list(storage.collection.find({}, {"_id": 0}))
-    
+
     if not records:
         print("Archive is empty.")
         return
@@ -134,14 +140,16 @@ def list_saved_media(storage):
     for record in records:
         try:
             # Eksik alanları tamamla
-            if "page_url" not in record: record["page_url"] = ""
-            if "status" not in record: record["status"] = "not watched"
-            
+            if "page_url" not in record:
+                record["page_url"] = ""
+            if "status" not in record:
+                record["status"] = "not watched"
+
             # Media Type kontrolü
-            m_type = record.get("media_type", "movie") # Varsayılan movie
+            m_type = record.get("media_type", "movie")  # Varsayılan movie
 
             # Nesneyi oluştur
-            # Movie ve Series sınıflarının parametre isimleri aynı olduğu için 
+            # Movie ve Series sınıflarının parametre isimleri aynı olduğu için
             # dinamik sözlük (dictionary unpacking) kullanabiliriz.
             params = {
                 "title": record.get("title"),
@@ -156,22 +164,34 @@ def list_saved_media(storage):
                 obj = Series(**params)
             else:
                 obj = Movie(**params)
-            
+
             print(obj.get_info())
-            
+
         except Exception as e:
-            print(f"Error displaying item: {record.get('title', 'Unknown')} - {e}")
+            print(
+                f"Error displaying item: {record.get('title', 'Unknown')} - {e}")
+
 
 def update_status_workflow(storage):
     """
     Update status logic.
     """
-    search_term = input("\nEnter name to update: ").strip()
-    if not search_term: return
+    if storage.collection is None:
+        print("❌ No database connection.")
+        return
 
-    query = {"title": {"$regex": f".{search_term}.", "$options": "i"}}
-    matches = list(storage.collection.find(query))
-    
+    search_term = input("\nEnter name to update: ").strip().lower()
+    if not search_term:
+        return
+
+    # Tüm veriyi çekip Python'da filtreliyoruz (Büyük/Küçük harf sorunu olmaz)
+    all_media = list(storage.collection.find({}, {"_id": 0}))
+
+    matches = []
+    for media in all_media:
+        if search_term in media.get("title", "").lower():
+            matches.append(media)
+
     if not matches:
         print("❌ Not found.")
         return
@@ -194,18 +214,21 @@ def update_status_workflow(storage):
 
     # Diziler için ekstra seçenek sun
     is_series = selected.get("media_type") == "series"
-    
-    print("1. Watched (✅)")
-    print("2. Not Watched (📅)")
+
+    print("1. Watched ")
+    print("2. Not Watched")
     if is_series:
-        print("3. Watching (▶)")
-    
+        print("3. Watching")
+
     choice = input("New Status: ")
     new_status = "not watched"
-    
-    if choice == '1': new_status = "watched"
-    elif choice == '2': new_status = "not watched"
-    elif choice == '3' and is_series: new_status = "watching"
+
+    if choice == '1':
+        new_status = "watched"
+    elif choice == '2':
+        new_status = "not watched"
+    elif choice == '3' and is_series:
+        new_status = "watching"
     else:
         print("Cancelled/Invalid.")
         return
@@ -216,6 +239,7 @@ def update_status_workflow(storage):
     )
     print(f"✔ Updated to: {new_status.upper()}")
 
+
 def main():
     """Main Loop"""
     load_dotenv()
@@ -224,12 +248,36 @@ def main():
 
     while True:
         print_menu()
-        choice = input("Your Choice (1-6): ")
+        choice = input("Your Choice (1-6): ").strip()
 
         if choice == '1':
             add_media_workflow(storage, poster_mgr)
         elif choice == '2':
             list_saved_media(storage)
         elif choice == '3':
-            fn = input("Filename (movies.json): ")
-            if not fn: fn = "movies."
+            fn = input("Filename (movies.json): ").strip()
+            if not fn:
+                fn = "movies.json"
+                if not fn:
+                    fn = "movies.json"
+            storage.export_json(fn)
+        elif choice == '4':
+            update_status_workflow(storage)
+        elif choice == '5':
+            print("\n📡 Starting monitoring mode (Press CTRL+C to stop)...")
+            try:
+                monitor = ArchiveMonitor(interval_hours=6)
+                monitor.start()
+            except KeyboardInterrupt:
+                print("\n🛑 Monitoring stopped.")
+        elif choice == '6':
+            print("Exiting...")
+            sys.exit()
+        else:
+            print("❌ Invalid choice, please try 1-6.")
+
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()
