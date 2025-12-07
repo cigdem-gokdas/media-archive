@@ -13,8 +13,7 @@ import shutil
 
 from business_logic_and_oop import Movie, Series
 from scraper import IMDBScraper
-from data_storage import MongoStorage
-from data_storage import Movie as StorageMovie
+from data_storage import MongoStorage, Movie as StorageMovie
 from poster_manager import PosterManager
 from search_manager import find_link
 

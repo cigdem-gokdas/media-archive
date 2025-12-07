@@ -11,10 +11,9 @@ from falkor import falkor_db
 import search_manager
 from scraper import scraper
 from data_storage import MongoStorage
+from data_storage import Movie as StorageMovie
 from poster_manager import PosterManager
 from monitoring import ArchiveMonitor
-
-# Business Logic Imports
 from business_logic_and_oop import Movie, Series
 
 
@@ -116,8 +115,16 @@ def add_media_workflow(storage, poster_mgr):
         print(" Downloading poster...")
         poster_mgr.download_poster(data.poster_url, data.title)
 
-    # Save to database
-    storage.save(media_obj)
+    storage_movie = StorageMovie(
+        title=media_obj.title,
+        year=media_obj.year,
+        rating=media_obj.rating,
+        page_url=media_obj.page_url,
+        poster_url=media_obj.poster_url,
+        last_updated=None
+    )
+    storage.save(storage_movie)
+
     falkor_db.save_media(media_obj)
 
 

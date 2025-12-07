@@ -5,6 +5,7 @@ and JSON exports for movie data.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from typing import List, Optional
+from dataclasses import asdict
 import json
 import os
 
@@ -120,7 +121,7 @@ class MongoStorage(StorageBase):
                 print("No movies to export.")
                 return
 
-            data = movies
+            data = [asdict(m) for m in movies]
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
 

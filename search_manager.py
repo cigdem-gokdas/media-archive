@@ -41,7 +41,7 @@ def find_link(movie_name):
             page.wait_for_selector(selector, timeout=10000)
 
             first_result = page.locator(selector).first
-            href = first_result.get_attribute("href")
+            href = first_result.get_attribute("href") if first_result else None
 
             if href and "/title/" in href:
                 final = "https://www.imdb.com" + href.split("?")[0]
