@@ -61,11 +61,15 @@ class PosterManager:
     def _sanitize_filename(self, title):
         """
         Sanitize the movie title to create a valid filename.
-        Removes or replaces invalid characters.
+        Removes or replaces invalid characters and prevents security vulnerabilities.
         """
-        # Remove or replace invalid filename characters
-        # Invalid characters: < > : " / \ | ? *
-        sanitized = re.sub(r'[<>:"/\\|?*]', '', title)
+        sanitized = title.replace('\x00', '')
+
+        sanitized = sanitized.replace('..', '')
+
+        sanitized = sanitized.replace('/', '').replace('\\', '')
+
+        sanitized = re.sub(r'[<>:"|?*]', '', sanitized)
 
         # Replace multiple spaces with single space
         sanitized = re.sub(r'\s+', ' ', sanitized)
@@ -99,7 +103,7 @@ class PosterManager:
 
             # Check if file already exists
             if file_path.exists():
-                print(f"→ Poster already exists: {file_path.name}")
+                print(f"↑ Poster already exists: {file_path.name}")
                 return True
 
             print(f"⬇ Downloading poster for '{title}'...")

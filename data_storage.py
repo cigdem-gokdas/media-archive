@@ -5,7 +5,6 @@ and JSON exports for movie data.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, asdict
 from typing import List, Optional
-from dataclasses import asdict
 import json
 import os
 
@@ -17,6 +16,7 @@ load_dotenv()
 
 
 @dataclass
+# pylint: disable=too-many-instance-attributes
 class Movie:
     """Dataclass representing a movie item."""
     title: str
