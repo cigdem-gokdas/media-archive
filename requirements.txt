@@ -5,3 +5,6 @@ requests
 python-dotenv
 pylint
 falkordb
+redis
+networkx
+matplotlib

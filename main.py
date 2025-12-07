@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 from falkor import falkor_db
 import search_manager
+import visualize_falkor_graph
 from scraper import scraper
 from data_storage import MongoStorage
 from data_storage import Movie as StorageMovie
@@ -29,7 +30,9 @@ def print_menu():
     print("3. Export Data to JSON")
     print("4. Update Watch Status (✅/📅/▶)")
     print("5. Start Monitoring Mode")
-    print("6. Exit")
+    print("6. Visualize Graph (FalkorDB)")
+    print("7. Sync MongoDB → FalkorDB")
+    print("8. Exit")
     print("="*34)
 
 
@@ -241,6 +244,92 @@ def update_status_workflow(storage):
     print(f"✔ Updated to: {new_status.upper()}")
 
 
+def visualize_graph_workflow():
+    """
+    Generate and display graph visualization from FalkorDB.
+    """
+    print("\n📊 Generating graph visualization...")
+
+    try:
+        visualize_falkor_graph.visualize_graph_data()
+        print("✓ Graph visualization saved to 'project_graph_visualization.png'")
+    except ConnectionError:
+        print("FalkorDB is not running!")
+        print("\nTo use graph visualization:")
+        print("1. Start Docker container:")
+        print("docker run -p 6379:6379 falkordb/falkordb")
+        print("2. Run this option again")
+    except FileNotFoundError:
+        print("Required visualization libraries not found")
+        print("Install with: pip install matplotlib networkx")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f"Error generating visualization: {e}")
+
+
+def sync_to_falkor_workflow(storage):
+    """
+    Manually sync existing movies from MongoDB to FalkorDB.
+    Useful when FalkorDB wasn't running during initial data entry.
+    """
+    if storage.collection is None:
+        print("No database connection.")
+        return
+
+    print("\n📊 Syncing movies to FalkorDB...")
+
+    # Check if FalkorDB is active
+    if not falkor_db.is_active:
+        print("FalkorDB is not running!")
+        print("\nTo enable FalkorDB:")
+        print("1. Start Docker container:")
+        print("   docker run -p 6379:6379 falkordb/falkordb")
+        print("2. Run this option again")
+        return
+
+    # Fetch all movies from MongoDB
+    records = list(storage.collection.find({}, {"_id": 0}))
+
+    if not records:
+        print("No movies to sync.")
+        return
+
+    print(f"Found {len(records)} movies in MongoDB")
+
+    synced = 0
+    failed = 0
+
+    for record in records:
+        try:
+            m_type = record.get("media_type", "movie")
+
+            params = {
+                "title": record.get("title"),
+                "year": record.get("year"),
+                "rating": record.get("rating"),
+                "poster_url": record.get("poster_url"),
+                "page_url": record.get("page_url"),
+                "status": record.get("status", "not watched")
+            }
+
+            if m_type == "series":
+                media_obj = Series(**params)
+            else:
+                media_obj = Movie(**params)
+
+            # Save to FalkorDB
+            falkor_db.save_media(media_obj)
+            synced += 1
+            print(f"✓ Synced: {record.get('title')}")
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            failed += 1
+            print(f"⚠️  Failed to sync {record.get('title')}: {e}")
+
+    print("\n✓ Sync Complete!")
+    print(f"  Synced: {synced}")
+    print(f"  Failed: {failed}")
+
+
 # pylint: disable=too-many-branches
 def main():
     """Main Loop"""
@@ -250,7 +339,7 @@ def main():
 
     while True:
         print_menu()
-        choice = input("Your Choice (1-6): ").strip()
+        choice = input("Your Choice (1-8): ").strip()
 
         if choice == '1':
             add_media_workflow(storage, poster_mgr)
@@ -273,10 +362,14 @@ def main():
             except KeyboardInterrupt:
                 print("\n Monitoring stopped.")
         elif choice == '6':
+            visualize_graph_workflow()
+        elif choice == '7':
+            sync_to_falkor_workflow(storage)
+        elif choice == '8':
             print("Exiting...")
             sys.exit()
         else:
-            print(" Invalid choice, please try 1-6.")
+            print(" Invalid choice, please try 1-8.")
 
         time.sleep(1)
 
