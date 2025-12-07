@@ -71,11 +71,13 @@ def add_media_workflow(storage, poster_mgr):
     type_choice = input("Select (1/2): ")
 
     media_obj = None
+    media_type = None
 
     if type_choice == '1':
         # movie
         print("Watched? (y/n): ", end="")
         status = "watched" if input().lower() == 'y' else "not watched"
+        media_type = "movie"
 
         media_obj = Movie(
             title=data.title,
@@ -101,6 +103,8 @@ def add_media_workflow(storage, poster_mgr):
         else:
             status = "not watched"
 
+        media_type = "series"
+
         media_obj = Series(
             title=data.title,
             year=data.year,
@@ -123,7 +127,9 @@ def add_media_workflow(storage, poster_mgr):
         year=media_obj.year,
         rating=media_obj.rating,
         page_url=media_obj.page_url,
+        media_type=media_type,
         poster_url=media_obj.poster_url,
+        status=media_obj.status,
         last_updated=None
     )
     storage.save(storage_movie)

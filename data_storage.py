@@ -23,9 +23,11 @@ class Movie:
     year: str
     rating: str
     page_url: str
+    media_type: str
 
     poster_url: Optional[str] = None
     last_updated: Optional[str] = None
+    status: Optional[str] = None
 
 
 class StorageBase(ABC):
@@ -104,9 +106,29 @@ class MongoStorage(StorageBase):
 
         movies = []
         for record in records:
-            valid_keys = {k: v for k,
-                          v in record.items() if k in Movie.__annotations__}
-            movies.append(Movie(**valid_keys))
+            try:
+                if not isinstance(record, dict):
+                    continue
+
+                # Check all required fields exist
+                required_fields = ['title', 'year',
+                                   'rating', 'page_url', 'media_type']
+                if not all(k in record for k in required_fields):
+                    continue
+
+                # Extract and validate fields
+                valid_keys = {k: v for k, v in record.items()
+                              if k in Movie.__annotations__}
+
+                # Ensure required fields
+                valid_keys['media_type'] = record.get('media_type', 'movie')
+                valid_keys['status'] = record.get('status', 'not watched')
+
+                movies.append(Movie(**valid_keys))
+
+            except (KeyError, ValueError, TypeError):
+                # Skip corrupted records silently
+                continue
 
         print("\n--- Saved Movies ---")
         for i, m in enumerate(movies, start=1):
