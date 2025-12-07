@@ -43,7 +43,7 @@ class Movie(BaseMedia, MediaItem):
     """
     VALID_STATUSES: ClassVar[Set[str]] = {"watched", "not watched"}
 
-    # pylint: disable=R0913, R0917
+    # pylint: disable=too-many-arguments, too-many-positional-arguments
     def __init__(
         self,
         title: str,
@@ -58,8 +58,6 @@ class Movie(BaseMedia, MediaItem):
         if clean_status not in self.VALID_STATUSES:
             clean_status = "not watched"
 
-        # Pylint complains about too many arguments (limit is 5), but we need them here.
-        # pylint: disable=too-many-arguments, too-many-positional-arguments
         super().__init__(title, year, rating, poster_url, page_url, clean_status, "movie")
 
     def get_info(self) -> str:
@@ -90,7 +88,6 @@ class Series(BaseMedia, MediaItem):
         if clean_status not in self.VALID_STATUSES:
             clean_status = "not watched"
 
-        # DÜZELTİLEN SATIR: _init_ yerine __init__ yapıldı
         super().__init__(title, year, rating, poster_url, page_url, clean_status, "series")
 
     def get_info(self) -> str:

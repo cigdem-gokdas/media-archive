@@ -36,8 +36,7 @@ def print_menu():
 
 def add_media_workflow(storage, poster_mgr):
     """
-    Execute the workflow for adding new media:
-    Search -> Scrape -> Classify -> Save
+    Execute the workflow for adding new media.
     """
     media_name = input("\nEnter movie/series name to search: ").strip()
 
@@ -55,7 +54,6 @@ def add_media_workflow(storage, poster_mgr):
     print(f" Link found: {url}")
     print(" Fetching data...")
 
-    # Scraper'dan MovieData objesi döner
     data = scraper.scrape_media_data(url)
 
     if not data:
@@ -113,12 +111,12 @@ def add_media_workflow(storage, poster_mgr):
         print(" Invalid selection.")
         return
 
-    # Posteri indir
+    # Download poster
     if data.poster_url:
         print(" Downloading poster...")
         poster_mgr.download_poster(data.poster_url, data.title)
 
-    # Veritabanına kaydet
+    # Save to database
     storage.save(media_obj)
     falkor_db.save_media(media_obj)
 
@@ -162,12 +160,13 @@ def list_saved_media(storage):
                 obj = Movie(**params)
 
             print(obj.get_info())
-
+        # pylint: disable=broad-exception-caught
         except Exception as e:
             print(
                 f"Error displaying item: {record.get('title', 'Unknown')} - {e}")
 
 
+# pylint: disable=too-many-branches
 def update_status_workflow(storage):
     """
     Update status logic.
@@ -235,6 +234,7 @@ def update_status_workflow(storage):
     print(f"✔ Updated to: {new_status.upper()}")
 
 
+# pylint: disable=too-many-branches
 def main():
     """Main Loop"""
     load_dotenv()
