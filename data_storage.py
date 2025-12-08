@@ -130,7 +130,7 @@ class MongoStorage(StorageBase):
                 # Skip corrupted records silently
                 continue
 
-        print("\n--- Saved Movies ---")
+        print("\nSaved Movies")
         for i, m in enumerate(movies, start=1):
             print(f"{i}. {m.title} ({m.year}) ⭐ {m.rating}")
         return movies
