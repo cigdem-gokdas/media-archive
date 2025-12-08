@@ -61,8 +61,8 @@ class Movie(BaseMedia, MediaItem):
         super().__init__(title, year, rating, poster_url, page_url, clean_status, "movie")
 
     def get_info(self) -> str:
-        icon = "✅" if self.status == "watched" else "📅"
-        return f"🎬 MOVIE: {self.title} ({self.year}) | {icon} {self.status.upper()}"
+        icon = "" if self.status == "watched" else ""
+        return f"MOVIE: {self.title} ({self.year}) | {icon} {self.status.upper()}"
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -92,13 +92,13 @@ class Series(BaseMedia, MediaItem):
 
     def get_info(self) -> str:
         if self.status == "watching":
-            icon = "▶"
+            icon = ""
         elif self.status == "watched":
-            icon = "✅"
+            icon = ""
         else:
-            icon = "📅"
+            icon = ""
 
-        return f"📺 SERIES: {self.title} ({self.year}) | {icon} {self.status.upper()}"
+        return f"SERIES: {self.title} ({self.year}) | {icon} {self.status.upper()}"
 
     def to_dict(self) -> dict:
         return asdict(self)

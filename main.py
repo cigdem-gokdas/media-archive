@@ -28,7 +28,7 @@ def print_menu():
     print("1. Add New Movie or TV Show")
     print("2. List Saved Media (w/ Status)")
     print("3. Export Data to JSON")
-    print("4. Update Watch Status (✅/📅/▶)")
+    print("4. Update Watch Status)")
     print("5. Start Monitoring Mode")
     print("6. Visualize Graph (FalkorDB)")
     print("7. Sync MongoDB → FalkorDB")
@@ -62,7 +62,7 @@ def add_media_workflow(storage, poster_mgr):
         print(" Failed to fetch data.")
         return
 
-    print(f"✔ Data found: {data.title} ({data.year}) - ⭐ {data.rating}")
+    print(f"Data found: {data.title} ({data.year}) - {data.rating}")
 
     # ---(Movie vs Series) ---
     print("\nIs this a Movie or a TV Series?")
@@ -247,14 +247,14 @@ def update_status_workflow(storage):
         {"title": selected['title']},
         {"$set": {"status": new_status}}
     )
-    print(f"✔ Updated to: {new_status.upper()}")
+    print(f"Updated to: {new_status.upper()}")
 
 
 def visualize_graph_workflow():
     """
     Generate and display graph visualization from FalkorDB.
     """
-    print("\n📊 Generating graph visualization...")
+    print("\nGenerating graph visualization...")
 
     try:
         visualize_falkor_graph.visualize_graph_data()
@@ -281,7 +281,7 @@ def sync_to_falkor_workflow(storage):
         print("No database connection.")
         return
 
-    print("\n📊 Syncing movies to FalkorDB...")
+    print("\nSyncing movies to FalkorDB...")
 
     # Check if FalkorDB is active
     if not falkor_db.is_active:
@@ -325,13 +325,13 @@ def sync_to_falkor_workflow(storage):
             # Save to FalkorDB
             falkor_db.save_media(media_obj)
             synced += 1
-            print(f"✓ Synced: {record.get('title')}")
+            print(f"Synced: {record.get('title')}")
 
         except Exception as e:  # pylint: disable=broad-exception-caught
             failed += 1
-            print(f"⚠️  Failed to sync {record.get('title')}: {e}")
+            print(f"Failed to sync {record.get('title')}: {e}")
 
-    print("\n✓ Sync Complete!")
+    print("\nSync Complete!")
     print(f"  Synced: {synced}")
     print(f"  Failed: {failed}")
 
@@ -361,7 +361,7 @@ def main():
         elif choice == '4':
             update_status_workflow(storage)
         elif choice == '5':
-            print("\n📡 Starting monitoring mode (Press CTRL+C to stop)...")
+            print("\nStarting monitoring mode (Press CTRL+C to stop)...")
             try:
                 monitor = ArchiveMonitor(interval_hours=6)
                 monitor.start()

@@ -20,14 +20,12 @@ from monitoring import ArchiveMonitor
 from falkor import FalkorManager
 
 
-# ============================================================================
 # ROBUSTNESS TESTS - ATTACK SURFACE ANALYSIS
-# ============================================================================
 
 class TestInputValidationRobustness(unittest.TestCase):
     """Test code against malicious/malformed inputs"""
 
-    # ===== SQL INJECTION / NOSQL INJECTION =====
+    # SQL INJECTION / NOSQL INJECTION
     def test_mongo_injection_attack_title(self):
         """Test prevention of NoSQL injection via title"""
         # Attack: {"$ne": null}
@@ -72,7 +70,7 @@ class TestInputValidationRobustness(unittest.TestCase):
         call_args = mock_col.find_one.call_args
         self.assertIsNotNone(call_args)
 
-    # ===== PATH TRAVERSAL =====
+    # PATH TRAVERSAL
     def test_path_traversal_filename(self):
         """Test prevention of path traversal via filename"""
         pm = PosterManager(folder_name="test_traversal")
@@ -115,7 +113,7 @@ class TestInputValidationRobustness(unittest.TestCase):
         self.assertEqual(movie.rating, html_payload)
         self.assertIsInstance(movie.rating, str)
 
-    # ===== COMMAND INJECTION =====
+    #  COMMAND INJECTION
     def test_command_injection_title(self):
         """Test command injection prevention"""
         cmd_injection = "'; rm -rf /; #"
@@ -123,7 +121,7 @@ class TestInputValidationRobustness(unittest.TestCase):
 
         self.assertEqual(movie.title, cmd_injection)
 
-    # ===== MALFORMED DATA =====
+    # MALFORMED DATA
     def test_extremely_long_title(self):
         """Test handling of extremely long input"""
         long_title = "A" * 100000
@@ -564,9 +562,7 @@ class TestMonitoringRobustness(unittest.TestCase):
         monitor.check_updates()
 
 
-# ============================================================================
 # INTEGRATION TESTS - COMPLETE WORKFLOWS
-# ============================================================================
 
 class TestCompleteWorkflow(unittest.TestCase):
     """Test complete application workflows"""
@@ -622,12 +618,12 @@ if __name__ == '__main__':
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
 
-    print("\n" + "="*70)
+    print("\n" + " ")
     print("ROBUSTNESS TEST SUMMARY")
-    print("="*70)
+    print(" ")
     print(f"Total Tests: {result.testsRun}")
     print(
         f"Passed: {result.testsRun - len(result.failures) - len(result.errors)}")
     print(f"Failed: {len(result.failures)}")
     print(f"Errors: {len(result.errors)}")
-    print("="*70)
+    print(" ")

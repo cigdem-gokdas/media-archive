@@ -42,30 +42,18 @@ class FalkorManager:
             print("✔ Connected to FalkorDB (Graph Mode Active)")
         # pylint: disable=broad-exception-caught
         except Exception:
-            print("⚠️  FalkorDB not detected. Running in MongoDB-only mode.")
+            print("FalkorDB not detected. Running in MongoDB-only mode.")
             self.is_active = False
 
     def _sanitize_title(self, title: str) -> str:
         """
         Sanitize title for Cypher query safety.
-
-        Args:
-            title: Movie or series title to sanitize
-
-        Returns:
-            Sanitized title with escaped special characters
         """
         return title.replace("'", "\\'").replace('"', '\\"')
 
     def save_media(self, media_item):
         """
         Save media item as node and create relationships in graph.
-
-        Creates nodes for movies/series and establishes connections
-        to category hubs for relationship visualization.
-
-        Args:
-            media_item: Movie or Series object with media metadata
         """
         if not self.is_active:
             return
@@ -89,7 +77,7 @@ class FalkorManager:
             """
 
             self.graph.query(node_query)
-            print(f"🕸 Synced to FalkorDB Graph: {media_item.title}")
+            print(f" Synced to FalkorDB Graph: {media_item.title}")
 
             # Create hub node and link
             self._create_hub_relationship(title, m_type, status)
@@ -99,20 +87,12 @@ class FalkorManager:
 
         # pylint: disable=broad-exception-caught
         except Exception as error:
-            print(f"⚠️  FalkorDB Error: {error}")
+            print(f"FalkorDB Error: {error}")
 
     def _create_hub_relationship(self, title: str, m_type: str,
                                  _status: str) -> None:
         """
         Create relationship between media item and category hub.
-
-        Organizes movies and series into separate hubs for better
-        visualization and relationship structuring.
-
-        Args:
-            title: Sanitized media title
-            m_type: Type of media ("Movie" or "Series")
-            status: Watch status of media
         """
         try:
             if m_type == "Movie":
@@ -142,14 +122,6 @@ class FalkorManager:
                                      status: str) -> None:
         """
         Create relationships between items with same watch status.
-
-        Links watched/not watched/watching items together to show
-        viewing patterns in the graph.
-
-        Args:
-            title: Sanitized media title
-            m_type: Type of media ("Movie" or "Series")
-            status: Watch status for grouping
         """
         try:
             # Create status hub
